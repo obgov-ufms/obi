@@ -1,0 +1,70 @@
+table organization {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  name text
+}
+
+table user {
+  id uuid [pk, default: `uuid_generate_v4()`]
+}
+
+table user_organization {
+  id serial [pk]
+
+  user_id uuid [not null, ref: > user.id]
+  organization_id uuid [not null, ref: > organization.id]
+  
+  indexes {
+    (user_id, organization_id) [unique]
+  }
+}
+
+table authorization_scope {
+  id text [pk]
+  description text 
+}
+
+table user_organization_scope {
+  user_organization_id int [pk, ref: > user_organization.id]
+  authorization_scope_id text [pk, ref: > authorization_scope.id]
+}
+
+table document {
+  id uuid [pk, default: `uuid_generate_v4()`]
+  organization_id uuid [not null, ref: > organization.id]
+}
+
+table user_document {
+  id serial [pk]
+
+  user_id uuid [not null, ref: > user.id]
+  document_id uuid [not null, ref: > document.id]
+  
+  indexes {
+    (user_id, document_id) [unique]
+  }
+}
+
+table user_document_scope {
+  user_document_id int [pk, ref: > user_document.id]
+  authorization_scope_id text [pk, ref: > authorization_scope.id]
+}
+
+table document_node {
+  id serial [pk]
+  document_id uuid [pk, ref: > document.id]
+  index int [not null]
+  metadata jsonb 
+
+  indexes {
+    (id, document_id, index) [unique]
+  }
+}
+
+table data_definition_entry {
+  document_node_id int [pk]
+  document_id uuid [pk]
+  id serial [pk]
+  value jsonb 
+}
+
+ref: data_definition_entry.(document_node_id, document_id) > document_node.(id, document_id)
