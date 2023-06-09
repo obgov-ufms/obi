@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/vega_logo.png" alt="Logotipo Vega">
+<img src=".github/assets/vega_logo.png" alt="Logotipo Vega" height="120px">
 
 # vega
 
