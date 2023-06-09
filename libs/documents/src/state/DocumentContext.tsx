@@ -33,14 +33,16 @@ type Context = {
   textNodeOnKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   inputNodeOnKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   inputNodeOnInput: React.KeyboardEventHandler<HTMLDivElement>;
-  addNode: (newNode: Omit<DocumentNode, "index">) => void
-  deleteNode: (node: DocumentNode) => void
-  updateNode: (updatedNode: DocumentNode) => void
+  addNode: (newNode: Omit<DocumentNode, "index">) => void;
+  deleteNode: (node: DocumentNode) => void;
+  updateNode: (updatedNode: DocumentNode) => void;
   inputNodeRef: React.RefObject<HTMLDivElement>;
   inputNodeValue: string;
   inputNodeCommandSuggestion: Command[];
   openDocument: Document | undefined;
-  setOpenDocument: (document: Document & { nodes: DocumentNode[]}) => void;
+  setOpenDocument: (
+    document: (Document & { nodes: DocumentNode[] }) | undefined
+  ) => void;
 };
 
 export const DocumentContext = createContext<Context>({
@@ -72,55 +74,70 @@ type Command = {
 };
 
 type DocumentProviderProps = PropsWithChildren<{
-  addNode: (newNode: Omit<DocumentNode, "index">) => void
-  deleteNode: (node: DocumentNode) => void
-  updateNode: (updatedNode: DocumentNode) => void
-}>
+  addNode: (newNode: Omit<DocumentNode, "index">) => void;
+  deleteNode: (node: DocumentNode) => void;
+  updateNode: (updatedNode: DocumentNode) => void;
+}>;
 
 export function DocumentProvider(props: DocumentProviderProps) {
-  const [openDocument, setOpenDocument] = useState<Document & {nodes: DocumentNode[]}>();
+  const [openDocument, setOpenDocument] = useState<
+    Document & { nodes: DocumentNode[] }
+  >();
   const [inputNodeValue, setInputNodeValue] = useState("");
   const [inputNodeCommandSuggestion, setInputNodeCommandSuggestion] = useState<
     Command[]
   >([]);
 
-  const { addNode: _addNode, deleteNode: _deleteNode, updateNode: _updateNode } = props
+  const {
+    addNode: _addNode,
+    deleteNode: _deleteNode,
+    updateNode: _updateNode,
+  } = props;
 
   const addNode = (newNode: Omit<DocumentNode, "index">) => {
-    setOpenDocument(state =>{
+    setOpenDocument((state) => {
       if (!state) {
         return state;
       }
 
-      return {...state, nodes: [...state.nodes, { ...newNode, index: state.nodes.length }]}
-    })
+      return {
+        ...state,
+        nodes: [...state.nodes, { ...newNode, index: state.nodes.length }],
+      };
+    });
 
-    _addNode(newNode)
-  }
+    _addNode(newNode);
+  };
 
   const deleteNode = (node: DocumentNode) => {
-    setOpenDocument(state =>{
+    setOpenDocument((state) => {
       if (!state) {
         return state;
       }
 
-      return {...state, nodes: state.nodes.filter(({ id }) => id !== node.id)}
-    })
-    
-    _deleteNode(node)
-  }
+      return {
+        ...state,
+        nodes: state.nodes.filter(({ id }) => id !== node.id),
+      };
+    });
+
+    _deleteNode(node);
+  };
 
   const updateNode = (node: DocumentNode) => {
-    setOpenDocument(state =>{
+    setOpenDocument((state) => {
       if (!state) {
         return state;
       }
 
-      return {...state, nodes: state.nodes.map((n) => n.id === node.id ? node : n )}
-    })
-    
-    _updateNode(node)
-  }
+      return {
+        ...state,
+        nodes: state.nodes.map((n) => (n.id === node.id ? node : n)),
+      };
+    });
+
+    _updateNode(node);
+  };
 
   const inputNodeRef = useRef<HTMLDivElement>(null);
 
@@ -250,7 +267,9 @@ export function DocumentProvider(props: DocumentProviderProps) {
         return;
       }
 
-      updateNode(TextDocumentNode(markdownContent, openDocument.id, node.index));
+      updateNode(
+        TextDocumentNode(markdownContent, openDocument.id, node.index)
+      );
 
       setContent(markdown.processor.processSync(markdownContent).result);
     };
@@ -312,9 +331,7 @@ export function DocumentProvider(props: DocumentProviderProps) {
     );
 
     if (trimmedValue !== "" && matchCommand.length > 0) {
-      setInputNodeCommandSuggestion(
-        matchCommand.map(([, command]) => command)
-      );
+      setInputNodeCommandSuggestion(matchCommand.map(([, command]) => command));
       return;
     }
 

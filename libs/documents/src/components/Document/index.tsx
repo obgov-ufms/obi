@@ -2,7 +2,7 @@ import "./styles.css";
 import { useDocument } from "@/state/DocumentContext";
 import { MdClose } from "react-icons/md";
 import { DocumentNodeComponent } from "./DocumentNode";
-import "@vega/data-manager/dist/style.css"
+import "@vega/data-manager/dist/style.css";
 import { Spreadsheet } from "@vega/data-manager";
 
 export function Document() {
@@ -16,9 +16,11 @@ export function Document() {
   } = useDocument();
 
   if (!openDocument) {
-    return (<div className="h-full w-full bg-slate-100 text-slate-400 border border-slate-200/70 shadow-md shadow-slate-100 rounded-t-lg rounded-x-lg last:rounded-b-lg pt-4 flex items-center justify-center">
-      Selecione um documento
-    </div>)
+    return (
+      <div className="h-full w-full bg-slate-100 text-slate-400 border border-slate-200/70 shadow-md shadow-slate-100 rounded-t-lg rounded-x-lg last:rounded-b-lg pt-4 flex items-center justify-center">
+        Selecione um documento
+      </div>
+    );
   }
 
   return (
@@ -26,8 +28,8 @@ export function Document() {
       <div className="h-full overflow-y-scroll bg-white border border-slate-200/70 shadow-md shadow-slate-100 rounded-t-lg rounded-x-lg last:rounded-b-lg pt-4 flex flex-col">
         {nodes.length > 0 && (
           <>
-            {nodes.map((node, i) => (
-              <div key={i} className="flex gap-4 items-center px-6">
+            {nodes.map((node) => (
+              <div key={node.id} className="flex gap-4 items-center px-6">
                 <DocumentNodeComponent node={node} />
                 <button
                   className="h-7 w-7 rounded-full flex items-center justify-center text-transparent hover:text-slate-400 hover:bg-slate-100"

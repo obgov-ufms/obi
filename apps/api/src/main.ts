@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { ExpressApp, KyselyCRUDRepository, kyselyClient } from "./framework";
+import { HTTPApp, KyselyCRUDRepository, kyselyClient } from "./framework";
 import { CRUDUsecase } from "./core";
 import { http as httpConfig } from "./config";
 
@@ -9,7 +9,7 @@ const crudUsecase = new CRUDUsecase(
   new KyselyCRUDRepository(kyselyClient, "document_node"),
   new KyselyCRUDRepository(kyselyClient, "data_definition_entry")
 );
-const app = new ExpressApp(crudUsecase);
+const app = new HTTPApp(crudUsecase);
 
 createServer(app.requestListener).listen(
   httpConfig.port,
