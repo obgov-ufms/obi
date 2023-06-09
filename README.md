@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/assets/vega_logo.png" alt="Logotipo Vega">
+
 # vega
 
 Aplicação de coleta, análise, tratamento, armazenamento e distribuição de indicadores de governança nestas instituições
