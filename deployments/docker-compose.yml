@@ -1,10 +1,10 @@
 version: "3.9"
 
-name: sigesp
+name: vega
 
 services:
   web:
-    container_name: sigesp_web
+    container_name: vega_web
     build:
       context: ../
       dockerfile: ./deployments/web/Dockerfile
@@ -14,7 +14,7 @@ services:
     depends_on:
       - api
   api:
-    container_name: sigesp_api
+    container_name: vega_api
     build:
       context: ../
       dockerfile: ./deployments/api/Dockerfile
@@ -22,9 +22,9 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
-  db:
-    container_name: sigesp_db
+      - postgres
+  postgres:
+    container_name: vega_postgres
     image: postgres:15.3-alpine
     env_file: "./postgres/.env.dev"
     ports:
@@ -32,8 +32,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/scripts/:/docker-entrypoint-initdb.d/:z
-  db_admin:
-    container_name: sigesp_db_admin
+  pgadmin:
+    container_name: vega_pgadmin
     image: dpage/pgadmin4:latest
     env_file: "./pgadmin/.env.dev"
     ports:
@@ -43,7 +43,7 @@ services:
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json:z
     depends_on:
-      - db
+      - postgres
 
 volumes:
   postgres_data:
