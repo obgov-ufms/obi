@@ -16,16 +16,12 @@ export function Document() {
   } = useDocument();
 
   if (!openDocument) {
-    return (
-      <div className="h-full w-full bg-slate-100 text-slate-400 border border-slate-200/70 shadow-md shadow-slate-100 rounded-t-lg rounded-x-lg last:rounded-b-lg pt-4 flex items-center justify-center">
-        Selecione um documento
-      </div>
-    );
+    return null;
   }
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="h-full overflow-y-scroll bg-white border border-slate-200/70 shadow-md shadow-slate-100 rounded-t-lg rounded-x-lg last:rounded-b-lg pt-4 flex flex-col">
+      <div className="h-full overflow-y-scroll pt-4 flex flex-col">
         {nodes.length > 0 && (
           <>
             {nodes.map((node) => (
