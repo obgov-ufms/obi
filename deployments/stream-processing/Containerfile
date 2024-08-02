@@ -1,0 +1,9 @@
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.10_7_1.10.1_3.4.2
+
+COPY apps/stream-processing /app
+
+WORKDIR /app
+
+RUN sbt clean assembly
+
+ENTRYPOINT [ "scala", "-Dorg.slf4j.simpleLogger.defaultLogLevel=warn", "-cp", "./target/scala-3.4.2/stream-processing-assembly-0.1.0.jar", "com.vega.streamprocessing.StreamProcessing" ]
