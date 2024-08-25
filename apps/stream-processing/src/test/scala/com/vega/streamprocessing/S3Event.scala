@@ -9,21 +9,22 @@ class S3EventSuite extends munit.FunSuite:
 
     assert(keyWithoutPath match
       case S3EventKey(bucket, path, filename) =>
-        true
+        bucket == "vega" && path == "" && filename == "file.txt"
       case _ => false
     )
 
     val keyWithPath = "vega/long/path/to/file.txt"
 
-    assert(keyWithoutPath match
+    assert(keyWithPath match
       case S3EventKey(bucket, path, filename) =>
-        true
+        bucket == "vega" && path == "long/path/to" && filename == "file.txt"
       case _ => false
     )
+
   test("S3EventValue"):
     val eventExample = s"""{
       "EventName": "s3:ObjectCreated:Put",
-      "Key": "vega/Contrato de renovação-1.pdf",
+      "Key": "vega/relatorio.pdf",
       "Records": [
         {
           "eventVersion": "2.0",
@@ -80,7 +81,4 @@ class S3EventSuite extends munit.FunSuite:
         .deserializer()
         .deserialize("", eventExample.getBytes)
 
-    assert(Option(value) match
-      case Some(value) => true
-      case _           => false
-    )
+    assert(value.EventName == "s3:ObjectCreated:Put")

@@ -1,0 +1,34 @@
+{
+	servers {
+		metrics
+	}
+
+	admin caddy:2019
+}
+
+localhost {
+	@console_api_match path /console/api /console/api/*
+	@api_match path /api /api/*
+	@v1_match path /v1 /v1/*
+	@files_match path /files /files/*
+
+	handle @console_api_match {
+		reverse_proxy dify-api:5001
+	}
+
+	handle @api_match {
+		reverse_proxy dify-api:5001
+	}
+
+	handle @v1_match {
+		reverse_proxy dify-api:5001
+	}
+
+	handle @files_match {
+		reverse_proxy dify-api:5001
+	}
+
+	handle {
+		reverse_proxy dify-web:3000
+	}
+}

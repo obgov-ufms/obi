@@ -24,38 +24,81 @@ import java.io.ByteArrayOutputStream
 import java.io.ByteArrayInputStream
 import scala.collection.parallel.CollectionConverters._
 import scala.util.Try
+import scala.concurrent.{Future, Await, ExecutionContext}
+import scala.concurrent.duration.Duration
+
+import ExecutionContext.Implicits.global
 
 extension (e: S3Event)
-  def extractFileImages()(using minioClient: MinioClient): Int =
+  def extractFileImages()(using storage: StorageProvider): Int =
     val (filename, _) = e.key.nameAndExtension
+    val bucket = e.key.bucket
 
     val document = e.fetchPdf()
 
     document match
-      case None => 0
-      case Some(value) =>
-        val engine = PrintImageLocations()
+      case Left(value) => 0
+      case Right(value) =>
+        val engine = ImageGetterEngine()
         value.getPages().forEach(engine.processPage(_))
 
-        engine.images.par.foreach(i =>
+        val results = engine.images.map(i =>
           val ImageWithName(name, image) = i
           val imageObjectName = s"$filename/images/$name.${image.getSuffix}"
-          
+
           Try {
             val stream = image.imageInputStream()
-         
-            minioClient.putObject(
-              PutObjectArgs
-                .builder()
-                .bucket("vega")
-                .`object`(imageObjectName)
-                .stream(stream, stream.available, -1)
-                .build()
+
+            storage.putObject(
+              Object(
+                bucket,
+                imageObjectName,
+                s"image/${image.getSuffix}",
+                stream.available,
+                stream
+              )
             )
+          }.toEither
+        )
+
+        results.count(_.isRight)
+
+  def parExtractFileImages()(using storage: StorageProvider): Int =
+    val (filename, _) = e.key.nameAndExtension
+    val bucket = e.key.bucket
+
+    val document = e.fetchPdf()
+
+    document match
+      case Left(value) => 0
+      case Right(value) =>
+        val engine = ImageGetterEngine()
+        value.getPages().forEach(engine.processPage(_))
+
+        val imageFutures = engine.images.map(i =>
+          val ImageWithName(name, image) = i
+          val imageObjectName = s"$filename/images/$name.${image.getSuffix}"
+
+          Future {
+            Try {
+              val stream = image.imageInputStream()
+
+              storage.putObject(
+                Object(
+                  bucket,
+                  imageObjectName,
+                  s"image/${image.getSuffix}",
+                  stream.available,
+                  stream
+                )
+              )
+            }.toEither
           }
         )
 
-        engine.images.length
+        val futureResults = Future.sequence(imageFutures)
+        val results = Await.result(futureResults, Duration.Inf)
+        results.count(_.isRight)
 
 case class ImageWithName(name: String, image: PDImageXObject)
 
@@ -65,7 +108,7 @@ extension (o: PDImageXObject)
     ImageIO.write(o.getImage, o.getSuffix, byteArrayOutputStream)
     ByteArrayInputStream(byteArrayOutputStream.toByteArray)
 
-class PrintImageLocations extends PDFStreamEngine:
+class ImageGetterEngine extends PDFStreamEngine:
   var images = Array[ImageWithName]()
 
   addOperator(Concatenate(this))

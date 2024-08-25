@@ -3,20 +3,62 @@ package com.vega.streamprocessing
 import java.io.InputStream
 import scala.util.Try
 import io.minio.{MinioClient, GetObjectArgs, StatObjectArgs}
+import io.minio.PutObjectArgs
 
 extension (e: S3Event)
-  def fetchObject()(using minioClient: MinioClient): Option[InputStream] =
-    val S3EventKey(_, path, filename) = e.key
+  def fetchObject()(using storage: StorageProvider): Either[Throwable, Object] =
+    storage.getObject(e)
 
-    val objectName = s"${if path.nonEmpty then s"/$path" else ""}/$filename"
+case class Object(
+    bucket: String,
+    name: String,
+    contentType: String,
+    size: Long,
+    content: InputStream
+)
 
-    val getArgs = GetObjectArgs
-      .builder()
-      .bucket("vega")
-      .`object`(objectName)
-      .build()
+trait StorageProvider:
+  def getObject(event: S3Event): Either[Throwable, Object]
+  def putObject(obj: Object): Either[Throwable, Unit]
 
+class MinioStorageProvider(client: MinioClient) extends StorageProvider:
+  def getObject(event: S3Event): Either[Throwable, Object] =
+    val objectName = event.key.objectName
+    val bucket = event.key.bucket
+
+    val objectStat = Try {
+      client.statObject(
+        StatObjectArgs.builder.bucket(bucket).`object`(objectName).build
+      )
+    }.toEither
+
+    objectStat.flatMap(stat =>
+      Try {
+        val objectData = client
+          .getObject(
+            GetObjectArgs.builder
+              .bucket(bucket)
+              .`object`(objectName)
+              .build
+          )
+
+        Object(
+          bucket,
+          objectName,
+          stat.contentType,
+          stat.size(),
+          objectData
+        )
+      }.toEither
+    )
+  def putObject(obj: Object): Either[Throwable, Unit] =
     Try {
-      minioClient
-        .getObject(getArgs)
-    }.toOption
+      client.putObject(
+        PutObjectArgs.builder
+          .contentType(obj.contentType)
+          .stream(obj.content, obj.size, -1)
+          .build
+      )
+
+      ()
+    }.toEither

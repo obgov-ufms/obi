@@ -2,6 +2,7 @@ name: "vega"
 
 x-shared-env: &shared-api-worker-env
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_FILE: ${LOG_FILE:-}
   DEBUG: ${DEBUG:-false}
   FLASK_DEBUG: ${FLASK_DEBUG:-false}
   SECRET_KEY: ${SECRET_KEY:-sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U}
@@ -24,11 +25,14 @@ x-shared-env: &shared-api-worker-env
   CELERY_WORKER_CLASS: ${CELERY_WORKER_CLASS:-}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-360}
   CELERY_WORKER_AMOUNT: ${CELERY_WORKER_AMOUNT:-}
+  CELERY_AUTO_SCALE: ${CELERY_AUTO_SCALE:-false}
+  CELERY_MAX_WORKERS: ${CELERY_MAX_WORKERS:-}
+  CELERY_MIN_WORKERS: ${CELERY_MIN_WORKERS:-}
   API_TOOL_DEFAULT_CONNECT_TIMEOUT: ${API_TOOL_DEFAULT_CONNECT_TIMEOUT:-10}
   API_TOOL_DEFAULT_READ_TIMEOUT: ${API_TOOL_DEFAULT_READ_TIMEOUT:-60}
   DB_USERNAME: ${DB_USERNAME:-postgres}
-  DB_PASSWORD: ${DB_PASSWORD:-secret}
-  DB_HOST: ${DB_HOST:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-difyai123456}
+  DB_HOST: ${DB_HOST:-db}
   DB_PORT: ${DB_PORT:-5432}
   DB_DATABASE: ${DB_DATABASE:-dify}
   SQLALCHEMY_POOL_SIZE: ${SQLALCHEMY_POOL_SIZE:-30}
@@ -93,7 +97,7 @@ x-shared-env: &shared-api-worker-env
   MYSCALE_PASSWORD: ${MYSCALE_PASSWORD:-}
   MYSCALE_DATABASE: ${MYSCALE_DATABASE:-dify}
   MYSCALE_FTS_PARAMS: ${MYSCALE_FTS_PARAMS:-}
-  RELYT_HOST: ${RELYT_HOST:-postgres}
+  RELYT_HOST: ${RELYT_HOST:-db}
   RELYT_PORT: ${RELYT_PORT:-5432}
   RELYT_USER: ${RELYT_USER:-postgres}
   RELYT_PASSWORD: ${RELYT_PASSWORD:-difyai123456}
@@ -101,8 +105,8 @@ x-shared-env: &shared-api-worker-env
   PGVECTOR_HOST: ${PGVECTOR_HOST:-pgvector}
   PGVECTOR_PORT: ${PGVECTOR_PORT:-5432}
   PGVECTOR_USER: ${PGVECTOR_USER:-postgres}
-  PGVECTOR_PASSWORD: ${PGVECTOR_PASSWORD:-secret}
-  PGVECTOR_DATABASE: ${PGVECTOR_DATABASE:-vega}
+  PGVECTOR_PASSWORD: ${PGVECTOR_PASSWORD:-difyai123456}
+  PGVECTOR_DATABASE: ${PGVECTOR_DATABASE:-dify}
   TIDB_VECTOR_HOST: ${TIDB_VECTOR_HOST:-tidb}
   TIDB_VECTOR_PORT: ${TIDB_VECTOR_PORT:-4000}
   TIDB_VECTOR_USER: ${TIDB_VECTOR_USER:-}
@@ -119,6 +123,11 @@ x-shared-env: &shared-api-worker-env
   CHROMA_DATABASE: ${CHROMA_DATABASE:-default_database}
   CHROMA_AUTH_PROVIDER: ${CHROMA_AUTH_PROVIDER:-chromadb.auth.token_authn.TokenAuthClientProvider}
   CHROMA_AUTH_CREDENTIALS: ${CHROMA_AUTH_CREDENTIALS:-}
+  ELASTICSEARCH_HOST: ${ELASTICSEARCH_HOST:-0.0.0.0}
+  ELASTICSEARCH_PORT: ${ELASTICSEARCH_PORT:-9200}
+  ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+  ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-elastic}
+  KIBANA_PORT: ${KIBANA_PORT:-5601}
   # AnalyticDB configuration
   ANALYTICDB_KEY_ID: ${ANALYTICDB_KEY_ID:-}
   ANALYTICDB_KEY_SECRET: ${ANALYTICDB_KEY_SECRET:-}
@@ -170,6 +179,8 @@ x-shared-env: &shared-api-worker-env
   CODE_EXECUTION_API_KEY: ${SANDBOX_API_KEY:-dify-sandbox}
   CODE_MAX_NUMBER: ${CODE_MAX_NUMBER:-9223372036854775807}
   CODE_MIN_NUMBER: ${CODE_MIN_NUMBER:--9223372036854775808}
+  CODE_MAX_DEPTH: ${CODE_MAX_DEPTH:-5}
+  CODE_MAX_PRECISION: ${CODE_MAX_PRECISION:-20}
   CODE_MAX_STRING_LENGTH: ${CODE_MAX_STRING_LENGTH:-80000}
   TEMPLATE_TRANSFORM_MAX_LENGTH: ${TEMPLATE_TRANSFORM_MAX_LENGTH:-80000}
   CODE_MAX_STRING_ARRAY_LENGTH: ${CODE_MAX_STRING_ARRAY_LENGTH:-30}
@@ -177,6 +188,14 @@ x-shared-env: &shared-api-worker-env
   CODE_MAX_NUMBER_ARRAY_LENGTH: ${CODE_MAX_NUMBER_ARRAY_LENGTH:-1000}
   SSRF_PROXY_HTTP_URL: ${SSRF_PROXY_HTTP_URL:-http://ssrf_proxy:3128}
   SSRF_PROXY_HTTPS_URL: ${SSRF_PROXY_HTTPS_URL:-http://ssrf_proxy:3128}
+
+x-logging: &logging
+  logging:
+    driver: loki
+    options:
+      loki-url: "http://127.0.0.1:3100/loki/api/v1/push"
+      loki-retries: 5
+      loki-batch-size: 400
 
 services:
   postgres:
@@ -193,6 +212,7 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+    <<: *logging
   pgadmin:
     container_name: vega_pgadmin
     image: dpage/pgadmin4:latest
@@ -210,13 +230,14 @@ services:
     image: redis:6-alpine
     restart: always
     volumes:
-      - ./volumes/redis/data:/data
+      - ./redis/data:/data
     command: redis-server --requirepass ${REDIS_PASSWORD:-difyai123456}
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
+    <<: *logging
   dify-api:
     container_name: vega_dify_api
-    image: langgenius/dify-api:0.6.15
+    image: langgenius/dify-api:${DIFY_VERSION}
     restart: always
     environment:
       <<: *shared-api-worker-env
@@ -225,13 +246,14 @@ services:
       - postgres
       - redis
     volumes:
-      - ./volumes/app/storage:/app/api/storage
+      - ./dify/app/storage:/app/api/storage
     networks:
       - ssrf_proxy_network
       - default
+    <<: *logging
   dify-worker:
     container_name: vega_dify_worker
-    image: langgenius/dify-api:0.6.15
+    image: langgenius/dify-api:${DIFY_VERSION}
     restart: always
     environment:
       <<: *shared-api-worker-env
@@ -239,22 +261,24 @@ services:
     depends_on:
       - postgres
       - redis
+    <<: *logging
     volumes:
-      - ./volumes/app/storage:/app/api/storage
+      - ./dify/app/storage:/app/api/storage
     networks:
       - ssrf_proxy_network
       - default
   dify-web:
     container_name: vega_dify_web
-    image: langgenius/dify-web:0.6.15
+    image: langgenius/dify-web:${DIFY_VERSION}
     restart: always
     environment:
       CONSOLE_API_URL: ${CONSOLE_API_URL:-}
       APP_API_URL: ${APP_API_URL:-}
       SENTRY_DSN: ${WEB_SENTRY_DSN:-}
+    <<: *logging
   dify-sandbox:
     container_name: vega_dify_sandbox
-    image: langgenius/dify-sandbox:0.2.1
+    image: langgenius/dify-sandbox:0.2.6
     restart: always
     environment:
       API_KEY: ${SANDBOX_API_KEY:-dify-sandbox}
@@ -264,8 +288,9 @@ services:
       HTTP_PROXY: ${SANDBOX_HTTP_PROXY:-http://ssrf_proxy:3128}
       HTTPS_PROXY: ${SANDBOX_HTTPS_PROXY:-http://ssrf_proxy:3128}
       SANDBOX_PORT: ${SANDBOX_PORT:-8194}
+    <<: *logging
     volumes:
-      - ./volumes/sandbox/dependencies:/dependencies
+      - ./dify/sandbox/dependencies:/dependencies
     networks:
       - ssrf_proxy_network
   ssrf_proxy:
@@ -284,6 +309,7 @@ services:
     networks:
       - ssrf_proxy_network
       - default
+    <<: *logging
   pgvector:
     image: pgvector/pgvector:pg16
     profiles:
@@ -295,12 +321,13 @@ services:
       POSTGRES_DB: ${PGVECTOR_POSTGRES_DB:-dify}
       PGDATA: ${PGVECTOR_PGDATA:-/var/lib/postgresql/data/pgdata}
     volumes:
-      - ./volumes/pgvector/data:/var/lib/postgresql/data
+      - ./pgvector/data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 1s
       timeout: 3s
       retries: 30
+    <<: *logging
   minio:
     container_name: vega_minio
     image: minio/minio:latest
@@ -312,6 +339,7 @@ services:
     restart: on-failure
     volumes:
       - "./minio/data:/data:z"
+    <<: *logging
   minio_migrate:
     container_name: vega_minio_migrate
     image: minio/mc:latest
@@ -326,6 +354,7 @@ services:
       /usr/bin/mc mb s3/vega;
       /usr/bin/mc event add s3/vega arn:minio:sqs::DEFAULT:kafka;
       exit 0;'
+    <<: *logging
   kafka:
     container_name: vega_kafka
     image: quay.io/debezium/kafka:${DEBEZIUM_VERSION}
@@ -346,6 +375,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+    <<: *logging
   kafka_migrate:
     container_name: kafka_migrate
     image: confluentinc/cp-kafka:latest
@@ -357,6 +387,7 @@ services:
       kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --partitions 5 --replication-factor 1 --topic minio-events-v1;
       kafka-topics --bootstrap-server kafka:19092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic pdf-image-count;
       exit 0;'
+    <<: *logging
   debezium:
     image: quay.io/debezium/server:${DEBEZIUM_VERSION}
     container_name: vega_debezium
@@ -366,6 +397,7 @@ services:
       - "8088:8080"
     volumes:
       - ./debezium/application.properties:/debezium/conf/application.properties:z
+    <<: *logging
   kafka_ui:
     container_name: vega_kafka-ui
     image: provectuslabs/kafka-ui:latest
@@ -389,6 +421,10 @@ services:
     privileged: true
     devices: 
       - "/dev/kmsg"
+    command:
+      - '-housekeeping_interval=10s'
+      - '-docker_only=true'
+    <<: *logging
   prometheus:
     container_name: vega_prometheus
     image: prom/prometheus:latest
@@ -413,12 +449,32 @@ services:
       - "./grafana/default.yaml:/etc/grafana/provisioning/dashboards/default.yaml"
     depends_on:
       - prometheus
+    <<: *logging
   stream_processing:
     container_name: vega_stream_processing
     build: 
       context: ../
       dockerfile: ./deployments/stream-processing/Containerfile
     restart: always
+    <<: *logging
+  caddy:
+    image: caddy:2.7
+    container_name: vega_caddy
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:z
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    <<: *logging
+  loki:
+    container_name: compras_loki
+    image: grafana/loki:2.9.2
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
 
 volumes:
   grafana-data:

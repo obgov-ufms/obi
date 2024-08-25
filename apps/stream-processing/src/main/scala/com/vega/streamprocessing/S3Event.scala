@@ -10,8 +10,9 @@ case class S3EventKey(bucket: String, path: String, filename: String):
   def nameAndExtension =
     val parts = filename.split("\\.")
     (parts.slice(0, parts.length - 1).mkString("."), parts.last)
+  def objectName = s"${if path.nonEmpty then s"/$path" else ""}/$filename"
   override def toString() =
-    s"$bucket${if path.nonEmpty then s"/$path" else ""}/$filename"
+    s"$bucket$objectName"
 object S3EventKey:
   def unapply(s: String): Option[S3EventKey] =
     val parts = s.split("/")

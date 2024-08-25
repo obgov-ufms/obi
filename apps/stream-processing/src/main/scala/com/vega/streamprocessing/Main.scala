@@ -32,14 +32,16 @@ object StreamProcessing:
     val S3Events = "minio-events-v1"
     val PdfImageCount = "pdf-image-count"
 
-  given MinioClient = MinioClient
-    .builder()
-    .endpoint("http://minio:9000")
-    .credentials(
-      "Q3AM3UQ867SPQQA43P2F",
-      "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-    )
-    .build()
+  given StorageProvider = MinioStorageProvider(
+    MinioClient
+      .builder()
+      .endpoint("http://minio:9000")
+      .credentials(
+        "Q3AM3UQ867SPQQA43P2F",
+        "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+      )
+      .build()
+  )
 
   val builder = StreamsBuilder()
 
