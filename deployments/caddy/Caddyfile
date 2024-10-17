@@ -11,24 +11,36 @@ localhost {
 	@api_match path /api /api/*
 	@v1_match path /v1 /v1/*
 	@files_match path /files /files/*
+	
+	@label_studio_match path /label_studio /label_studio/*
 
 	handle @console_api_match {
-		reverse_proxy dify-api:5001
+		reverse_proxy dify_api:5001
 	}
 
 	handle @api_match {
-		reverse_proxy dify-api:5001
+		reverse_proxy dify_api:5001
 	}
 
 	handle @v1_match {
-		reverse_proxy dify-api:5001
+		reverse_proxy dify_api:5001
 	}
 
 	handle @files_match {
-		reverse_proxy dify-api:5001
+		reverse_proxy dify_api:5001
+	}
+
+	handle @label_studio_match {
+		uri strip_prefix /label_studio
+
+		reverse_proxy label_studio:8080
+	}
+
+	handle /webhook {
+		reverse_proxy webhook:8000
 	}
 
 	handle {
-		reverse_proxy dify-web:3000
+		reverse_proxy dify_web:3000
 	}
 }

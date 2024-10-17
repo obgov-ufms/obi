@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-run main.ts"
+  },
+  "imports": {
+    "hono": "npm:hono@^4.5.10",
+    "@std/": "https://deno.land/std@0.224.0/"
+  }
+}
