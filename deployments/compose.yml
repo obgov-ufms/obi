@@ -450,18 +450,18 @@ services:
       - 443:443
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:z
-      - ./caddy/ca-certficates/:/usr/local/share/ca-certificates/:z
     extra_hosts:
       - "host.docker.internal:host-gateway"
     profiles:
       - labelling
       - ai_platform
     <<: *logging
-  webhook:
+  api:
     image: denoland/deno:2.0.0-rc.0
-    container_name: webhook
+    container_name: vega_api
+    env_file: "./api/.env"
     volumes:
-      - ./webhook:/app:z
+      - ../apps/api/:/app:z
     command: run --allow-net --allow-env --allow-run /app/main.ts
   loki:
     container_name: compras_loki

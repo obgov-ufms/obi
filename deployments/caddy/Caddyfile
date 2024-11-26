@@ -37,7 +37,11 @@ localhost {
 	}
 
 	handle /webhook {
-		reverse_proxy webhook:8000
+		reverse_proxy api:8000
+	}
+
+	handle /labelstudio_export {
+		reverse_proxy api:8000
 	}
 
 	handle {
