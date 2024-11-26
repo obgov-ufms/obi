@@ -206,6 +206,7 @@ services:
     profiles: [ ai_platform, labelling ]
     volumes:
       - ./postgres/scripts/:/docker-entrypoint-initdb.d/:z
+      - ./postgres/data:/var/lib/postgresql:z
     <<: *logging
   # pgadmin:
   #   container_name: vega_pgadmin
@@ -450,6 +451,7 @@ services:
       - 443:443
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:z
+      - ./caddy/srv/files/:/srv/files/:z
     extra_hosts:
       - "host.docker.internal:host-gateway"
     profiles:

@@ -6,6 +6,73 @@
 	admin caddy:2019
 }
 
+(cors) {
+       @cors_preflight method OPTIONS
+
+       header {
+               Access-Control-Allow-Origin "{header.origin}"
+               Vary Origin
+               Access-Control-Expose-Headers "Authorization"
+               Access-Control-Allow-Credentials "true"
+       }
+
+       handle @cors_preflight {
+               header {
+                       Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE"
+                       Access-Control-Max-Age "3600"
+               }
+               respond "" 204
+       }
+}
+
+labelstudio.obgov.cento.software {
+    reverse_proxy label_studio:8080
+}
+
+dify.obgov.cento.software {
+    @console_api_match path /console/api /console/api/*
+    @api_match path /api /api/*
+    @v1_match path /v1 /v1/*
+    @files_match path /files /files/*
+
+    handle @console_api_match {
+    	reverse_proxy dify_api:5001
+	}
+
+    handle @console_api_match {
+        reverse_proxy dify_api:5001
+    }
+
+    handle @api_match {
+        reverse_proxy dify_api:5001
+    }
+
+    handle @v1_match {
+    	reverse_proxy dify_api:5001
+    }
+
+    handle @files_match {
+    	reverse_proxy dify_api:5001
+    }
+       
+    handle {
+        reverse_proxy dify_web:3000
+    }
+}
+
+obgov.cento.software {
+    import cors {header.origin}
+
+    handle /webhook {
+    	reverse_proxy webhook:8000
+    }
+
+    handle_path /files* {
+		root * /srv/files
+        file_server browse
+    }
+}
+
 localhost {
 	@console_api_match path /console/api /console/api/*
 	@api_match path /api /api/*
